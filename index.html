@@ -292,10 +292,11 @@
         </div>
       </div>
       <div class="actions">
-        <button id="tzCalcBtn" type="button">日本内の時差を引く</button>
+        <button id="tzCalcBtn" type="button">日本内時差を補正する</button>
       </div>
       <div id="tzResult" class="tz-result">未計算</div>
-      <p class="hint">補正式: 補正後時刻 = 出生時間 - ((出生地経度 - 135) × 4分)</p>
+      <p class="hint">補正式: 補正後時刻 = 出生時間 + ((出生地経度 - 135) × 4分)</p>
+      <p class="hint">※ 時差がプラスなら足し、マイナスなら引きます（参照サイト準拠）。</p>
       <p class="hint">※ 出生場所が未入力なら経度135°E（補正0分）として計算します。</p>
     </section>
 
@@ -502,9 +503,9 @@
         return;
       }
 
-      const regionalOffsetMinutes = Math.round((longitudeResult.longitude - JST_STANDARD_LONGITUDE) * 4);
+      const regionalOffsetMinutes = roundHalfAwayFromZero((longitudeResult.longitude - JST_STANDARD_LONGITUDE) * 4);
       const baseTotal = hour * 60 + minute;
-      const adjustedTotal = baseTotal - regionalOffsetMinutes;
+      const adjustedTotal = baseTotal + regionalOffsetMinutes;
       const normalizedTotal = normalizeToDayMinutes(adjustedTotal);
       const dayShift = Math.floor((adjustedTotal - normalizedTotal) / 1440);
       const adjustedHour = Math.floor(normalizedTotal / 60);
@@ -558,6 +559,12 @@
     function formatSignedMinutes(minutes) {
       const sign = minutes > 0 ? "+" : "";
       return sign + String(minutes) + "分";
+    }
+
+    function roundHalfAwayFromZero(value) {
+      const abs = Math.abs(value);
+      const roundedAbs = Math.floor(abs + 0.5);
+      return value < 0 ? -roundedAbs : roundedAbs;
     }
 
     function getDayShiftLabel(dayShift) {
