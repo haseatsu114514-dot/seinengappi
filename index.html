@@ -176,6 +176,74 @@
       padding-left: 18px;
     }
 
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .history-delete-btn {
+      background: #ffecef;
+      color: #7d1021;
+      border: 1px solid #f3bcc4;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+
+    .history-delete-btn:hover {
+      background: #ffdce2;
+    }
+
+    .history-memo-wrap {
+      margin-top: 8px;
+      border-top: 1px dashed var(--line);
+      padding-top: 8px;
+    }
+
+    .history-memo-label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--sub);
+      margin-bottom: 4px;
+    }
+
+    .history-memo-input {
+      width: 100%;
+      min-height: 62px;
+      resize: vertical;
+      border: 1px solid #c5d2dd;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.92rem;
+      font-family: inherit;
+    }
+
+    .history-memo-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 6px;
+    }
+
+    .history-memo-save {
+      background: #eef3f8;
+      color: var(--text);
+      border: 1px solid #ccd8e2;
+      padding: 7px 10px;
+      font-size: 0.82rem;
+    }
+
+    .memo-entry {
+      margin-top: 12px;
+      max-width: 560px;
+    }
+
+    .memo-entry input {
+      margin-bottom: 0;
+    }
+
     .hint {
       font-size: 0.85rem;
       color: var(--sub);
@@ -257,6 +325,10 @@
       <div class="people-grid" id="peopleGrid"></div>
       <div class="actions">
         <button id="calcBtn" type="button">生年月日を逆算する</button>
+      </div>
+      <div class="memo-entry">
+        <label for="historyMemoInput">今回の履歴メモ（任意）</label>
+        <input id="historyMemoInput" type="text" maxlength="120" placeholder="例: 友人2人ぶんを確認">
       </div>
       <p class="hint">
         年齢と誕生日（月日）が分かる人の生年月日を推定します。最大2人まで入力できます。
@@ -376,6 +448,7 @@
 
     const peopleGrid = document.getElementById("peopleGrid");
     const historyContainer = document.getElementById("historyContainer");
+    const historyMemoInput = document.getElementById("historyMemoInput");
     const birthPlaceOptions = document.getElementById("birthPlaceOptions");
     const tzResult = document.getElementById("tzResult");
     const todayText = document.getElementById("todayText");
@@ -455,7 +528,7 @@
       }
 
       if (computed.length > 0) {
-        saveHistory(computed);
+        saveHistory(computed, historyMemoInput.value.trim());
         renderHistory();
       }
     }
@@ -630,23 +703,75 @@
       }
       try {
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
+        if (!Array.isArray(parsed)) {
+          return [];
+        }
+        return parsed
+          .map((entry) => sanitizeHistoryEntry(entry))
+          .filter((entry) => entry.items.length > 0);
       } catch (error) {
         return [];
       }
     }
 
-    function saveHistory(items) {
+    function sanitizeHistoryEntry(entry) {
+      const sourceEntry = entry && typeof entry === "object" ? entry : {};
+      const sourceItems = Array.isArray(sourceEntry.items) ? sourceEntry.items : [];
+      const items = sourceItems.map((person, index) => sanitizeHistoryPerson(person, index));
+      return {
+        createdAt: typeof sourceEntry.createdAt === "string" ? sourceEntry.createdAt : new Date().toISOString(),
+        memo: typeof sourceEntry.memo === "string" ? sourceEntry.memo : "",
+        items: items
+      };
+    }
+
+    function sanitizeHistoryPerson(person, index) {
+      const source = person && typeof person === "object" ? person : {};
+      const ageNum = Number(source.age);
+      return {
+        name: typeof source.name === "string" && source.name !== "" ? source.name : String(index + 1) + "人目",
+        age: Number.isFinite(ageNum) ? ageNum : "-",
+        birthday: typeof source.birthday === "string" && source.birthday !== "" ? source.birthday : "-",
+        birthDate: typeof source.birthDate === "string" && source.birthDate !== "" ? source.birthDate : "-"
+      };
+    }
+
+    function setHistory(history) {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function saveHistory(items, memo) {
       const history = getHistory();
       history.unshift({
         createdAt: new Date().toISOString(),
+        memo: typeof memo === "string" ? memo : "",
         items: items
       });
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 100)));
+      setHistory(history.slice(0, 100));
     }
 
     function clearHistory() {
       localStorage.removeItem(HISTORY_KEY);
+      renderHistory();
+    }
+
+    function deleteHistoryAt(index) {
+      const history = getHistory();
+      if (!Number.isInteger(index) || index < 0 || index >= history.length) {
+        return;
+      }
+      history.splice(index, 1);
+      setHistory(history);
+      renderHistory();
+    }
+
+    function updateHistoryMemo(index, memo) {
+      const history = getHistory();
+      if (!Number.isInteger(index) || index < 0 || index >= history.length) {
+        return;
+      }
+      history[index].memo = String(memo).slice(0, 300);
+      setHistory(history);
       renderHistory();
     }
 
@@ -660,29 +785,75 @@
       const list = document.createElement("div");
       list.className = "history-list";
 
-      history.forEach((entry) => {
+      history.forEach((entry, index) => {
         const item = document.createElement("article");
         item.className = "history-item";
 
-        const date = new Date(entry.createdAt);
-        const timeText = date.toLocaleString("ja-JP");
-        const lines = entry.items
-          .map((person) =>
-            "<li>" +
-              escapeHtml(person.name) +
-              " (年齢 " +
-              person.age +
-              " / 誕生日 " +
-              person.birthday +
-              ") → " +
-              escapeHtml(person.birthDate) +
-            "</li>"
-          )
-          .join("");
+        const header = document.createElement("div");
+        header.className = "history-header";
 
-        item.innerHTML =
-          '<div class="history-time">' + escapeHtml(timeText) + "</div>" +
-          "<ul>" + lines + "</ul>";
+        const timeDiv = document.createElement("div");
+        timeDiv.className = "history-time";
+        const date = new Date(entry.createdAt);
+        timeDiv.textContent = Number.isNaN(date.getTime()) ? "日時不明" : date.toLocaleString("ja-JP");
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "history-delete-btn";
+        deleteBtn.textContent = "この履歴を削除";
+        deleteBtn.addEventListener("click", () => {
+          deleteHistoryAt(index);
+        });
+
+        header.appendChild(timeDiv);
+        header.appendChild(deleteBtn);
+        item.appendChild(header);
+
+        const ul = document.createElement("ul");
+        entry.items.forEach((person) => {
+          const li = document.createElement("li");
+          li.textContent =
+            person.name +
+            " (年齢 " +
+            person.age +
+            " / 誕生日 " +
+            person.birthday +
+            ") → " +
+            person.birthDate;
+          ul.appendChild(li);
+        });
+        item.appendChild(ul);
+
+        const memoWrap = document.createElement("div");
+        memoWrap.className = "history-memo-wrap";
+
+        const memoLabel = document.createElement("label");
+        memoLabel.className = "history-memo-label";
+        memoLabel.textContent = "メモ（任意）";
+
+        const memoInput = document.createElement("textarea");
+        memoInput.className = "history-memo-input";
+        memoInput.maxLength = 300;
+        memoInput.placeholder = "自由メモ";
+        memoInput.value = entry.memo || "";
+
+        const memoActions = document.createElement("div");
+        memoActions.className = "history-memo-actions";
+
+        const memoSaveBtn = document.createElement("button");
+        memoSaveBtn.type = "button";
+        memoSaveBtn.className = "history-memo-save";
+        memoSaveBtn.textContent = "メモ保存";
+        memoSaveBtn.addEventListener("click", () => {
+          updateHistoryMemo(index, memoInput.value);
+        });
+
+        memoActions.appendChild(memoSaveBtn);
+        memoWrap.appendChild(memoLabel);
+        memoWrap.appendChild(memoInput);
+        memoWrap.appendChild(memoActions);
+        item.appendChild(memoWrap);
+
         list.appendChild(item);
       });
 
@@ -690,14 +861,6 @@
       historyContainer.appendChild(list);
     }
 
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
   </script>
 </body>
 </html>
