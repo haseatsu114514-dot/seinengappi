@@ -326,6 +326,11 @@
       color: #f2f8ff;
     }
 
+    .quick-link-list {
+      display: grid;
+      gap: 10px;
+    }
+
     .mania-link {
       display: block;
       text-decoration: none;
@@ -434,15 +439,26 @@
 
     <section class="panel quick-link-panel">
       <h2>外部リンク</h2>
-      <a
-        class="mania-link"
-        href="https://www.koufuku.ne.jp/cgi-bin/unseiall.cgi"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span class="mania-link-title">マニアック四柱推命</span>
-        <span class="mania-link-sub">すぐ開く（別タブ）</span>
-      </a>
+      <div class="quick-link-list">
+        <a
+          class="mania-link"
+          href="https://www.koufuku.ne.jp/cgi-bin/unseiall.cgi"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="mania-link-title">マニアック四柱推命</span>
+          <span class="mania-link-sub">すぐ開く（別タブ）</span>
+        </a>
+        <a
+          class="mania-link"
+          href="https://www.starcrawler.net/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span class="mania-link-title">紫微斗数スタークローラー</span>
+          <span class="mania-link-sub">すぐ開く（別タブ）</span>
+        </a>
+      </div>
     </section>
   </main>
 
