@@ -396,10 +396,6 @@
           <input id="birthPlaceInput" type="text" list="birthPlaceOptions" placeholder="例: 東京">
           <datalist id="birthPlaceOptions"></datalist>
         </div>
-        <div>
-          <label for="birthLongitude">出生地の経度（任意・東経）</label>
-          <input id="birthLongitude" type="number" step="0.0001" placeholder="例: 139.6917">
-        </div>
       </div>
       <div class="actions">
         <button id="tzCalcBtn" type="button">日本内時差を補正する</button>
@@ -647,9 +643,8 @@
     function calculateJapaneseTimeAdjustment() {
       const timeRaw = getValue("birthTimeInput");
       const placeRaw = getValue("birthPlaceInput");
-      const longitudeRaw = getValue("birthLongitude");
 
-      if (!timeRaw && !placeRaw && !longitudeRaw) {
+      if (!timeRaw && !placeRaw) {
         tzResult.textContent = "未入力";
         tzResult.classList.remove("error");
         return;
@@ -668,7 +663,7 @@
         return;
       }
 
-      const longitudeResult = resolveLongitude(placeRaw, longitudeRaw);
+      const longitudeResult = resolveLongitude(placeRaw);
       if (longitudeResult.error) {
         setTzError(longitudeResult.error);
         return;
@@ -695,22 +690,14 @@
       return document.getElementById(id).value.trim();
     }
 
-    function resolveLongitude(placeRaw, longitudeRaw) {
-      if (longitudeRaw) {
-        const manualLongitude = Number(longitudeRaw);
-        if (!Number.isFinite(manualLongitude) || manualLongitude < 120 || manualLongitude > 154) {
-          return { error: "経度は日本国内想定で 120〜154 の範囲で入力してください。" };
-        }
-        return { longitude: manualLongitude, source: "経度直接入力" };
-      }
-
+    function resolveLongitude(placeRaw) {
       if (!placeRaw) {
         return { longitude: JST_STANDARD_LONGITUDE, source: "出生場所未入力（基準子午線 135°E）" };
       }
 
       const hit = birthPlaceLookup.get(normalizePlace(placeRaw));
       if (typeof hit !== "number") {
-        return { error: "出生場所が候補にない場合は、経度を直接入力してください。" };
+        return { error: "出生場所は候補にある地名で入力してください。" };
       }
       return { longitude: hit, source: "出生場所: " + placeRaw };
     }
