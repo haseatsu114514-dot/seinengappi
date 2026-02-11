@@ -385,6 +385,32 @@
     </section>
 
     <section class="panel">
+      <h2>日本内時差の補正（任意）</h2>
+      <div class="tz-grid">
+        <div>
+          <label for="birthTimeInput">出生時間（24時間）</label>
+          <input id="birthTimeInput" type="time">
+        </div>
+        <div>
+          <label for="birthPlaceInput">出生場所（候補から選択可）</label>
+          <input id="birthPlaceInput" type="text" list="birthPlaceOptions" placeholder="例: 東京">
+          <datalist id="birthPlaceOptions"></datalist>
+        </div>
+        <div>
+          <label for="birthLongitude">出生地の経度（任意・東経）</label>
+          <input id="birthLongitude" type="number" step="0.0001" placeholder="例: 139.6917">
+        </div>
+      </div>
+      <div class="actions">
+        <button id="tzCalcBtn" type="button">日本内時差を補正する</button>
+      </div>
+      <div id="tzResult" class="tz-result">未計算</div>
+      <p class="hint">補正式: 補正後時刻 = 出生時間 + ((出生地経度 - 135) × 4分)</p>
+      <p class="hint">※ 時差がプラスなら足し、マイナスなら引きます（参照サイト準拠）。</p>
+      <p class="hint">※ 出生場所が未入力なら経度135°E（補正0分）として計算します。</p>
+    </section>
+
+    <section class="panel">
       <h2>履歴</h2>
       <div class="history-tools">
         <div class="history-filter-grid">
@@ -409,32 +435,6 @@
         <p id="historyStatus" class="history-status"></p>
       </div>
       <div id="historyContainer"></div>
-    </section>
-
-    <section class="panel">
-      <h2>日本内時差の補正（任意）</h2>
-      <div class="tz-grid">
-        <div>
-          <label for="birthTimeInput">出生時間（24時間）</label>
-          <input id="birthTimeInput" type="time">
-        </div>
-        <div>
-          <label for="birthPlaceInput">出生場所（候補から選択可）</label>
-          <input id="birthPlaceInput" type="text" list="birthPlaceOptions" placeholder="例: 東京">
-          <datalist id="birthPlaceOptions"></datalist>
-        </div>
-        <div>
-          <label for="birthLongitude">出生地の経度（任意・東経）</label>
-          <input id="birthLongitude" type="number" step="0.0001" placeholder="例: 139.6917">
-        </div>
-      </div>
-      <div class="actions">
-        <button id="tzCalcBtn" type="button">日本内時差を補正する</button>
-      </div>
-      <div id="tzResult" class="tz-result">未計算</div>
-      <p class="hint">補正式: 補正後時刻 = 出生時間 + ((出生地経度 - 135) × 4分)</p>
-      <p class="hint">※ 時差がプラスなら足し、マイナスなら引きます（参照サイト準拠）。</p>
-      <p class="hint">※ 出生場所が未入力なら経度135°E（補正0分）として計算します。</p>
     </section>
 
     <section class="panel quick-link-panel">
