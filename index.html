@@ -138,6 +138,21 @@
       border: 1px solid var(--line);
     }
 
+    #undoHistoryBtn {
+      background: #fff4e0;
+      color: #7a4b00;
+      border: 1px solid #f0d2a6;
+    }
+
+    #exportJsonBtn,
+    #exportCsvBtn,
+    #importJsonBtn,
+    #clearFilterBtn {
+      background: #eef3f8;
+      color: var(--text);
+      border: 1px solid #ccd8e2;
+    }
+
     #tzCalcBtn {
       background: #0a7a43;
       color: #fff;
@@ -174,6 +189,32 @@
     .history-item ul {
       margin: 0;
       padding-left: 18px;
+    }
+
+    .history-tools {
+      margin-top: 10px;
+    }
+
+    .history-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .history-filter-grid input {
+      margin-bottom: 0;
+    }
+
+    .history-status {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: var(--sub);
+      min-height: 1.2em;
+    }
+
+    .history-status.error {
+      color: var(--danger);
     }
 
     .history-header {
@@ -340,8 +381,27 @@
 
     <section class="panel">
       <h2>履歴</h2>
-      <div class="actions">
-        <button id="clearHistoryBtn" type="button">履歴をクリア</button>
+      <div class="history-tools">
+        <div class="history-filter-grid">
+          <div>
+            <label for="historySearchInput">検索（名前/メモ/日付）</label>
+            <input id="historySearchInput" type="text" placeholder="例: 山田 / 2026-02-11">
+          </div>
+          <div>
+            <label for="historyDateInput">日付で絞り込み</label>
+            <input id="historyDateInput" type="date">
+          </div>
+        </div>
+        <div class="actions">
+          <button id="clearFilterBtn" type="button">絞り込み解除</button>
+          <button id="clearHistoryBtn" type="button">履歴をクリア</button>
+          <button id="undoHistoryBtn" type="button" hidden>取り消す</button>
+          <button id="exportJsonBtn" type="button">JSON出力</button>
+          <button id="exportCsvBtn" type="button">CSV出力</button>
+          <button id="importJsonBtn" type="button">JSON取込</button>
+          <input id="historyImportInput" type="file" accept=".json,application/json" hidden>
+        </div>
+        <p id="historyStatus" class="history-status"></p>
       </div>
       <div id="historyContainer"></div>
     </section>
@@ -389,6 +449,7 @@
   <script>
     const MAX_PEOPLE = 2;
     const HISTORY_KEY = "seinengappi_history_v1";
+    const HISTORY_LIMIT = 100;
     const JST_STANDARD_LONGITUDE = 135;
     const BIRTH_PLACE_DATA = [
       { name: "札幌", longitude: 141.3545, aliases: ["北海道", "札幌市"] },
@@ -449,9 +510,20 @@
     const peopleGrid = document.getElementById("peopleGrid");
     const historyContainer = document.getElementById("historyContainer");
     const historyMemoInput = document.getElementById("historyMemoInput");
+    const historySearchInput = document.getElementById("historySearchInput");
+    const historyDateInput = document.getElementById("historyDateInput");
+    const clearFilterBtn = document.getElementById("clearFilterBtn");
+    const undoHistoryBtn = document.getElementById("undoHistoryBtn");
+    const exportJsonBtn = document.getElementById("exportJsonBtn");
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    const importJsonBtn = document.getElementById("importJsonBtn");
+    const historyImportInput = document.getElementById("historyImportInput");
+    const historyStatus = document.getElementById("historyStatus");
     const birthPlaceOptions = document.getElementById("birthPlaceOptions");
     const tzResult = document.getElementById("tzResult");
     const todayText = document.getElementById("todayText");
+
+    let undoState = null;
     todayText.textContent = "今日の基準日: " + formatDate(todayYear, todayMonth, todayDay);
 
     initializeBirthPlaceOptions();
@@ -478,6 +550,16 @@
     document.getElementById("calcBtn").addEventListener("click", calculateAll);
     document.getElementById("clearHistoryBtn").addEventListener("click", clearHistory);
     document.getElementById("tzCalcBtn").addEventListener("click", calculateJapaneseTimeAdjustment);
+    historySearchInput.addEventListener("input", renderHistory);
+    historyDateInput.addEventListener("change", renderHistory);
+    clearFilterBtn.addEventListener("click", clearHistoryFilters);
+    undoHistoryBtn.addEventListener("click", undoLastHistoryAction);
+    exportJsonBtn.addEventListener("click", exportHistoryAsJson);
+    exportCsvBtn.addEventListener("click", exportHistoryAsCsv);
+    importJsonBtn.addEventListener("click", () => {
+      historyImportInput.click();
+    });
+    historyImportInput.addEventListener("change", importHistoryFromJsonFile);
 
     renderHistory();
 
@@ -714,6 +796,22 @@
       }
     }
 
+    function setHistory(history) {
+      if (!Array.isArray(history) || history.length === 0) {
+        localStorage.removeItem(HISTORY_KEY);
+        return;
+      }
+      const sanitized = history
+        .map((entry) => sanitizeHistoryEntry(entry))
+        .filter((entry) => entry.items.length > 0)
+        .slice(0, HISTORY_LIMIT);
+      if (sanitized.length === 0) {
+        localStorage.removeItem(HISTORY_KEY);
+        return;
+      }
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(sanitized));
+    }
+
     function sanitizeHistoryEntry(entry) {
       const sourceEntry = entry && typeof entry === "object" ? entry : {};
       const sourceItems = Array.isArray(sourceEntry.items) ? sourceEntry.items : [];
@@ -736,8 +834,21 @@
       };
     }
 
-    function setHistory(history) {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    function cloneHistoryEntry(entry) {
+      return {
+        createdAt: entry.createdAt,
+        memo: entry.memo,
+        items: entry.items.map((person) => ({
+          name: person.name,
+          age: person.age,
+          birthday: person.birthday,
+          birthDate: person.birthDate
+        }))
+      };
+    }
+
+    function cloneHistoryList(history) {
+      return history.map((entry) => cloneHistoryEntry(entry));
     }
 
     function saveHistory(items, memo) {
@@ -747,11 +858,22 @@
         memo: typeof memo === "string" ? memo : "",
         items: items
       });
-      setHistory(history.slice(0, 100));
+      setHistory(history.slice(0, HISTORY_LIMIT));
+      setHistoryStatus("履歴を追加しました。", false);
     }
 
     function clearHistory() {
-      localStorage.removeItem(HISTORY_KEY);
+      const history = getHistory();
+      if (history.length === 0) {
+        setHistoryStatus("クリアする履歴がありません。", true);
+        return;
+      }
+      setUndoState({
+        type: "clear",
+        entries: cloneHistoryList(history)
+      });
+      setHistory([]);
+      setHistoryStatus("履歴をクリアしました。", false);
       renderHistory();
     }
 
@@ -760,8 +882,15 @@
       if (!Number.isInteger(index) || index < 0 || index >= history.length) {
         return;
       }
+      const removed = history[index];
       history.splice(index, 1);
+      setUndoState({
+        type: "delete",
+        entry: cloneHistoryEntry(removed),
+        index: index
+      });
       setHistory(history);
+      setHistoryStatus("履歴を1件削除しました。", false);
       renderHistory();
     }
 
@@ -772,20 +901,312 @@
       }
       history[index].memo = String(memo).slice(0, 300);
       setHistory(history);
+      setHistoryStatus("メモを保存しました。", false);
       renderHistory();
     }
 
+    function clearHistoryFilters() {
+      historySearchInput.value = "";
+      historyDateInput.value = "";
+      renderHistory();
+    }
+
+    function setUndoState(state) {
+      undoState = state;
+      updateUndoUi();
+    }
+
+    function clearUndoState() {
+      undoState = null;
+      updateUndoUi();
+    }
+
+    function updateUndoUi() {
+      if (!undoState) {
+        undoHistoryBtn.hidden = true;
+        undoHistoryBtn.textContent = "取り消す";
+        return;
+      }
+
+      undoHistoryBtn.hidden = false;
+      if (undoState.type === "delete") {
+        undoHistoryBtn.textContent = "取り消す（1件削除）";
+        return;
+      }
+      if (undoState.type === "clear") {
+        undoHistoryBtn.textContent = "取り消す（全削除）";
+        return;
+      }
+      if (undoState.type === "import") {
+        undoHistoryBtn.textContent = "取り消す（取込）";
+        return;
+      }
+      undoHistoryBtn.textContent = "取り消す";
+    }
+
+    function undoLastHistoryAction() {
+      if (!undoState) {
+        return;
+      }
+
+      const state = undoState;
+      const history = getHistory();
+
+      if (state.type === "delete") {
+        const insertIndex = Math.min(state.index, history.length);
+        history.splice(insertIndex, 0, cloneHistoryEntry(state.entry));
+        setHistory(history.slice(0, HISTORY_LIMIT));
+        setHistoryStatus("削除を取り消しました。", false);
+      } else if (state.type === "clear") {
+        setHistory(cloneHistoryList(state.entries).slice(0, HISTORY_LIMIT));
+        setHistoryStatus("全削除を取り消しました。", false);
+      } else if (state.type === "import") {
+        setHistory(cloneHistoryList(state.entries).slice(0, HISTORY_LIMIT));
+        setHistoryStatus("取込を取り消しました。", false);
+      }
+
+      clearUndoState();
+      renderHistory();
+    }
+
+    function setHistoryStatus(message, isError) {
+      historyStatus.textContent = message || "";
+      historyStatus.classList.toggle("error", Boolean(isError));
+    }
+
+    function parseImportedHistoryEntries(text) {
+      const parsed = JSON.parse(text);
+      let entries = null;
+
+      if (Array.isArray(parsed)) {
+        entries = parsed;
+      } else if (parsed && typeof parsed === "object" && Array.isArray(parsed.entries)) {
+        entries = parsed.entries;
+      }
+
+      if (!entries) {
+        throw new Error("JSON形式が不正です。");
+      }
+
+      return entries
+        .map((entry) => sanitizeHistoryEntry(entry))
+        .filter((entry) => entry.items.length > 0);
+    }
+
+    function importHistoryFromJsonFile(event) {
+      const file = event.target.files && event.target.files[0];
+      historyImportInput.value = "";
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
+          const text = typeof reader.result === "string" ? reader.result : "";
+          const imported = parseImportedHistoryEntries(text);
+          if (imported.length === 0) {
+            throw new Error("取り込める履歴がありません。");
+          }
+
+          const current = getHistory();
+          setUndoState({
+            type: "import",
+            entries: cloneHistoryList(current)
+          });
+
+          const merged = current.concat(imported);
+          merged.sort((a, b) => historyTimestamp(b.createdAt) - historyTimestamp(a.createdAt));
+          setHistory(merged.slice(0, HISTORY_LIMIT));
+          setHistoryStatus(imported.length + "件の履歴を取り込みました。", false);
+          renderHistory();
+        } catch (error) {
+          setHistoryStatus("JSON取込に失敗しました。形式を確認してください。", true);
+        }
+      };
+
+      reader.onerror = function () {
+        setHistoryStatus("ファイルの読み込みに失敗しました。", true);
+      };
+
+      reader.readAsText(file, "utf-8");
+    }
+
+    function historyTimestamp(createdAt) {
+      const value = new Date(createdAt).getTime();
+      return Number.isNaN(value) ? 0 : value;
+    }
+
+    function exportHistoryAsJson() {
+      const history = getHistory();
+      if (history.length === 0) {
+        setHistoryStatus("出力できる履歴がありません。", true);
+        return;
+      }
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        entries: history
+      };
+      downloadTextFile(
+        "seinengappi-history-" + getFileStamp() + ".json",
+        JSON.stringify(payload, null, 2),
+        "application/json;charset=utf-8"
+      );
+      setHistoryStatus("JSONを出力しました。", false);
+    }
+
+    function exportHistoryAsCsv() {
+      const history = getHistory();
+      if (history.length === 0) {
+        setHistoryStatus("出力できる履歴がありません。", true);
+        return;
+      }
+      downloadTextFile(
+        "seinengappi-history-" + getFileStamp() + ".csv",
+        buildHistoryCsv(history),
+        "text/csv;charset=utf-8"
+      );
+      setHistoryStatus("CSVを出力しました。", false);
+    }
+
+    function buildHistoryCsv(history) {
+      const rows = [
+        ["record_index", "created_at_iso", "created_at_local", "memo", "person_name", "age", "birthday", "birth_date"]
+      ];
+
+      history.forEach((entry, index) => {
+        const createdLocal = formatHistoryDateTime(entry.createdAt);
+        entry.items.forEach((person) => {
+          rows.push([
+            String(index + 1),
+            entry.createdAt,
+            createdLocal,
+            entry.memo || "",
+            person.name,
+            String(person.age),
+            person.birthday,
+            person.birthDate
+          ]);
+        });
+      });
+
+      return rows.map((row) => row.map((cell) => csvEscape(cell)).join(",")).join("\n");
+    }
+
+    function csvEscape(value) {
+      const text = String(value == null ? "" : value);
+      if (/[",\n]/.test(text)) {
+        return '"' + text.replace(/"/g, '""') + '"';
+      }
+      return text;
+    }
+
+    function downloadTextFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function getFileStamp() {
+      const now = new Date();
+      return (
+        String(now.getFullYear()) +
+        String(now.getMonth() + 1).padStart(2, "0") +
+        String(now.getDate()).padStart(2, "0") +
+        "-" +
+        String(now.getHours()).padStart(2, "0") +
+        String(now.getMinutes()).padStart(2, "0") +
+        String(now.getSeconds()).padStart(2, "0")
+      );
+    }
+
+    function getHistoryFilter() {
+      return {
+        keyword: normalizeHistorySearch(historySearchInput.value),
+        date: historyDateInput.value
+      };
+    }
+
+    function normalizeHistorySearch(value) {
+      return String(value).trim().toLowerCase();
+    }
+
+    function formatHistoryDateValue(createdAt) {
+      const date = new Date(createdAt);
+      if (Number.isNaN(date.getTime())) {
+        return "";
+      }
+      return (
+        String(date.getFullYear()) +
+        "-" +
+        String(date.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(date.getDate()).padStart(2, "0")
+      );
+    }
+
+    function formatHistoryDateTime(createdAt) {
+      const date = new Date(createdAt);
+      if (Number.isNaN(date.getTime())) {
+        return "日時不明";
+      }
+      return date.toLocaleString("ja-JP");
+    }
+
+    function matchesHistoryFilter(entry, filter) {
+      if (filter.date) {
+        if (formatHistoryDateValue(entry.createdAt) !== filter.date) {
+          return false;
+        }
+      }
+
+      if (!filter.keyword) {
+        return true;
+      }
+
+      const searchParts = [
+        formatHistoryDateTime(entry.createdAt),
+        formatHistoryDateValue(entry.createdAt),
+        entry.createdAt,
+        entry.memo || ""
+      ];
+
+      entry.items.forEach((person) => {
+        searchParts.push(person.name, String(person.age), person.birthday, person.birthDate);
+      });
+
+      return searchParts.join(" ").toLowerCase().includes(filter.keyword);
+    }
+
     function renderHistory() {
+      updateUndoUi();
       const history = getHistory();
       if (history.length === 0) {
         historyContainer.innerHTML = '<p class="history-empty">履歴はまだありません。</p>';
         return;
       }
 
+      const filter = getHistoryFilter();
+      const visibleEntries = history
+        .map((entry, index) => ({ entry: entry, index: index }))
+        .filter((value) => matchesHistoryFilter(value.entry, filter));
+
+      if (visibleEntries.length === 0) {
+        historyContainer.innerHTML = '<p class="history-empty">条件に一致する履歴はありません。</p>';
+        return;
+      }
+
       const list = document.createElement("div");
       list.className = "history-list";
 
-      history.forEach((entry, index) => {
+      visibleEntries.forEach((value) => {
+        const entry = value.entry;
+        const index = value.index;
         const item = document.createElement("article");
         item.className = "history-item";
 
@@ -794,8 +1215,7 @@
 
         const timeDiv = document.createElement("div");
         timeDiv.className = "history-time";
-        const date = new Date(entry.createdAt);
-        timeDiv.textContent = Number.isNaN(date.getTime()) ? "日時不明" : date.toLocaleString("ja-JP");
+        timeDiv.textContent = formatHistoryDateTime(entry.createdAt);
 
         const deleteBtn = document.createElement("button");
         deleteBtn.type = "button";
