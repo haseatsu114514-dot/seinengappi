@@ -392,8 +392,8 @@
           <input id="birthTimeInput" type="time">
         </div>
         <div>
-          <label for="birthPlaceInput">出生場所（候補から選択可）</label>
-          <input id="birthPlaceInput" type="text" list="birthPlaceOptions" placeholder="例: 東京">
+          <label for="birthPlaceInput">出生場所（都道府県から選択）</label>
+          <input id="birthPlaceInput" type="text" list="birthPlaceOptions" placeholder="例: 東京都">
           <datalist id="birthPlaceOptions"></datalist>
         </div>
       </div>
@@ -464,53 +464,53 @@
     const HISTORY_LIMIT = 100;
     const JST_STANDARD_LONGITUDE = 135;
     const BIRTH_PLACE_DATA = [
-      { name: "札幌", longitude: 141.3545, aliases: ["北海道", "札幌市"] },
-      { name: "青森", longitude: 140.7400, aliases: ["青森県", "青森市"] },
-      { name: "盛岡", longitude: 141.1527, aliases: ["岩手県", "盛岡市"] },
-      { name: "仙台", longitude: 140.8719, aliases: ["宮城県", "仙台市"] },
-      { name: "秋田", longitude: 140.1025, aliases: ["秋田県", "秋田市"] },
-      { name: "山形", longitude: 140.3633, aliases: ["山形県", "山形市"] },
-      { name: "福島", longitude: 140.4676, aliases: ["福島県", "福島市"] },
-      { name: "水戸", longitude: 140.4468, aliases: ["茨城県", "水戸市"] },
-      { name: "宇都宮", longitude: 139.8836, aliases: ["栃木県", "宇都宮市"] },
-      { name: "前橋", longitude: 139.0608, aliases: ["群馬県", "前橋市"] },
-      { name: "さいたま", longitude: 139.6489, aliases: ["埼玉県", "さいたま市"] },
-      { name: "千葉", longitude: 140.1233, aliases: ["千葉県", "千葉市"] },
-      { name: "東京", longitude: 139.6917, aliases: ["東京都", "東京23区"] },
-      { name: "横浜", longitude: 139.6380, aliases: ["神奈川県", "横浜市"] },
-      { name: "新潟", longitude: 139.0232, aliases: ["新潟県", "新潟市"] },
-      { name: "富山", longitude: 137.2137, aliases: ["富山県", "富山市"] },
-      { name: "金沢", longitude: 136.6562, aliases: ["石川県", "金沢市"] },
-      { name: "福井", longitude: 136.2216, aliases: ["福井県", "福井市"] },
-      { name: "甲府", longitude: 138.5684, aliases: ["山梨県", "甲府市"] },
-      { name: "長野", longitude: 138.1810, aliases: ["長野県", "長野市"] },
-      { name: "岐阜", longitude: 136.7607, aliases: ["岐阜県", "岐阜市"] },
-      { name: "静岡", longitude: 138.3831, aliases: ["静岡県", "静岡市"] },
-      { name: "名古屋", longitude: 136.9066, aliases: ["愛知県", "名古屋市"] },
-      { name: "津", longitude: 136.5086, aliases: ["三重県", "津市"] },
-      { name: "大津", longitude: 135.8686, aliases: ["滋賀県", "大津市"] },
-      { name: "京都", longitude: 135.7681, aliases: ["京都府", "京都市"] },
-      { name: "大阪", longitude: 135.5023, aliases: ["大阪府", "大阪市"] },
-      { name: "神戸", longitude: 135.1955, aliases: ["兵庫県", "神戸市"] },
-      { name: "奈良", longitude: 135.8048, aliases: ["奈良県", "奈良市"] },
-      { name: "和歌山", longitude: 135.1675, aliases: ["和歌山県", "和歌山市"] },
-      { name: "鳥取", longitude: 134.2381, aliases: ["鳥取県", "鳥取市"] },
-      { name: "松江", longitude: 133.0505, aliases: ["島根県", "松江市"] },
-      { name: "岡山", longitude: 133.9344, aliases: ["岡山県", "岡山市"] },
-      { name: "広島", longitude: 132.4553, aliases: ["広島県", "広島市"] },
-      { name: "山口", longitude: 131.4714, aliases: ["山口県", "山口市"] },
-      { name: "徳島", longitude: 134.5549, aliases: ["徳島県", "徳島市"] },
-      { name: "高松", longitude: 134.0466, aliases: ["香川県", "高松市"] },
-      { name: "松山", longitude: 132.7657, aliases: ["愛媛県", "松山市"] },
-      { name: "高知", longitude: 133.5311, aliases: ["高知県", "高知市"] },
-      { name: "福岡", longitude: 130.4017, aliases: ["福岡県", "福岡市"] },
-      { name: "佐賀", longitude: 130.3009, aliases: ["佐賀県", "佐賀市"] },
-      { name: "長崎", longitude: 129.8737, aliases: ["長崎県", "長崎市"] },
-      { name: "熊本", longitude: 130.7417, aliases: ["熊本県", "熊本市"] },
-      { name: "大分", longitude: 131.6126, aliases: ["大分県", "大分市"] },
-      { name: "宮崎", longitude: 131.4239, aliases: ["宮崎県", "宮崎市"] },
-      { name: "鹿児島", longitude: 130.5581, aliases: ["鹿児島県", "鹿児島市"] },
-      { name: "那覇", longitude: 127.6792, aliases: ["沖縄県", "那覇市", "沖縄"] }
+      { name: "北海道", longitude: 141.3545, aliases: ["札幌", "札幌市"] },
+      { name: "青森県", longitude: 140.7400, aliases: ["青森", "青森市"] },
+      { name: "岩手県", longitude: 141.1527, aliases: ["盛岡", "盛岡市"] },
+      { name: "宮城県", longitude: 140.8719, aliases: ["仙台", "仙台市"] },
+      { name: "秋田県", longitude: 140.1025, aliases: ["秋田", "秋田市"] },
+      { name: "山形県", longitude: 140.3633, aliases: ["山形", "山形市"] },
+      { name: "福島県", longitude: 140.4676, aliases: ["福島", "福島市"] },
+      { name: "茨城県", longitude: 140.4468, aliases: ["水戸", "水戸市"] },
+      { name: "栃木県", longitude: 139.8836, aliases: ["宇都宮", "宇都宮市"] },
+      { name: "群馬県", longitude: 139.0608, aliases: ["前橋", "前橋市"] },
+      { name: "埼玉県", longitude: 139.6489, aliases: ["さいたま", "さいたま市"] },
+      { name: "千葉県", longitude: 140.1233, aliases: ["千葉", "千葉市"] },
+      { name: "東京都", longitude: 139.6917, aliases: ["東京", "東京23区"] },
+      { name: "神奈川県", longitude: 139.6380, aliases: ["横浜", "横浜市"] },
+      { name: "新潟県", longitude: 139.0232, aliases: ["新潟", "新潟市"] },
+      { name: "富山県", longitude: 137.2137, aliases: ["富山", "富山市"] },
+      { name: "石川県", longitude: 136.6562, aliases: ["金沢", "金沢市"] },
+      { name: "福井県", longitude: 136.2216, aliases: ["福井", "福井市"] },
+      { name: "山梨県", longitude: 138.5684, aliases: ["甲府", "甲府市"] },
+      { name: "長野県", longitude: 138.1810, aliases: ["長野", "長野市"] },
+      { name: "岐阜県", longitude: 136.7607, aliases: ["岐阜", "岐阜市"] },
+      { name: "静岡県", longitude: 138.3831, aliases: ["静岡", "静岡市"] },
+      { name: "愛知県", longitude: 136.9066, aliases: ["名古屋", "名古屋市"] },
+      { name: "三重県", longitude: 136.5086, aliases: ["津", "津市"] },
+      { name: "滋賀県", longitude: 135.8686, aliases: ["大津", "大津市"] },
+      { name: "京都府", longitude: 135.7681, aliases: ["京都", "京都市"] },
+      { name: "大阪府", longitude: 135.5023, aliases: ["大阪", "大阪市"] },
+      { name: "兵庫県", longitude: 135.1955, aliases: ["神戸", "神戸市"] },
+      { name: "奈良県", longitude: 135.8048, aliases: ["奈良", "奈良市"] },
+      { name: "和歌山県", longitude: 135.1675, aliases: ["和歌山", "和歌山市"] },
+      { name: "鳥取県", longitude: 134.2381, aliases: ["鳥取", "鳥取市"] },
+      { name: "島根県", longitude: 133.0505, aliases: ["松江", "松江市"] },
+      { name: "岡山県", longitude: 133.9344, aliases: ["岡山", "岡山市"] },
+      { name: "広島県", longitude: 132.4553, aliases: ["広島", "広島市"] },
+      { name: "山口県", longitude: 131.4714, aliases: ["山口", "山口市"] },
+      { name: "徳島県", longitude: 134.5549, aliases: ["徳島", "徳島市"] },
+      { name: "香川県", longitude: 134.0466, aliases: ["高松", "高松市"] },
+      { name: "愛媛県", longitude: 132.7657, aliases: ["松山", "松山市"] },
+      { name: "高知県", longitude: 133.5311, aliases: ["高知", "高知市"] },
+      { name: "福岡県", longitude: 130.4017, aliases: ["福岡", "福岡市", "北九州", "北九州市"] },
+      { name: "佐賀県", longitude: 130.3009, aliases: ["佐賀", "佐賀市"] },
+      { name: "長崎県", longitude: 129.8737, aliases: ["長崎", "長崎市"] },
+      { name: "熊本県", longitude: 130.7417, aliases: ["熊本", "熊本市"] },
+      { name: "大分県", longitude: 131.6126, aliases: ["大分", "大分市"] },
+      { name: "宮崎県", longitude: 131.4239, aliases: ["宮崎", "宮崎市"] },
+      { name: "鹿児島県", longitude: 130.5581, aliases: ["鹿児島", "鹿児島市"] },
+      { name: "沖縄県", longitude: 127.6792, aliases: ["那覇", "那覇市", "沖縄"] }
     ];
     const birthPlaceLookup = new Map();
 
@@ -697,7 +697,7 @@
 
       const hit = birthPlaceLookup.get(normalizePlace(placeRaw));
       if (typeof hit !== "number") {
-        return { error: "出生場所は候補にある地名で入力してください。" };
+        return { error: "出生場所は候補にある都道府県名で入力してください。" };
       }
       return { longitude: hit, source: "出生場所: " + placeRaw };
     }
