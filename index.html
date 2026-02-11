@@ -390,9 +390,6 @@
       <p class="hint">
         年齢と誕生日（月日）が分かる人の生年月日を推定します。最大2人まで入力できます。
       </p>
-      <p class="hint">
-        ブラウザのお気に入り登録: Windowsは <strong>Ctrl + D</strong> / Macは <strong>Command + D</strong>
-      </p>
     </section>
 
     <section class="panel">
@@ -412,9 +409,6 @@
         <button id="tzCalcBtn" type="button">日本内時差を補正する</button>
       </div>
       <div id="tzResult" class="tz-result">未計算</div>
-      <p class="hint">補正式: 補正後時刻 = 出生時間 + ((出生地経度 - 135) × 4分)</p>
-      <p class="hint">※ 時差がプラスなら足し、マイナスなら引きます（参照サイト準拠）。</p>
-      <p class="hint">※ 出生場所が未入力なら経度135°E（補正0分）として計算します。</p>
     </section>
 
     <section class="panel">
@@ -525,11 +519,6 @@
     ];
     const birthPlaceLookup = new Map();
 
-    const today = new Date();
-    const todayYear = today.getFullYear();
-    const todayMonth = today.getMonth() + 1;
-    const todayDay = today.getDate();
-
     const peopleGrid = document.getElementById("peopleGrid");
     const historyContainer = document.getElementById("historyContainer");
     const historyMemoInput = document.getElementById("historyMemoInput");
@@ -547,7 +536,8 @@
     const todayText = document.getElementById("todayText");
 
     let undoState = null;
-    todayText.textContent = "今日の基準日: " + formatDate(todayYear, todayMonth, todayDay);
+    let currentDateKey = "";
+    refreshCurrentDate(true);
 
     initializeBirthPlaceOptions();
 
@@ -583,10 +573,17 @@
       historyImportInput.click();
     });
     historyImportInput.addEventListener("change", importHistoryFromJsonFile);
+    window.addEventListener("focus", () => {
+      refreshCurrentDate(false);
+    });
+    setInterval(() => {
+      refreshCurrentDate(false);
+    }, 60000);
 
     renderHistory();
 
     function calculateAll() {
+      const todayParts = refreshCurrentDate(false);
       const computed = [];
 
       for (let i = 1; i <= MAX_PEOPLE; i += 1) {
@@ -617,8 +614,8 @@
         }
 
         const hasPassedThisYear =
-          todayMonth > month || (todayMonth === month && todayDay >= day);
-        const birthYear = hasPassedThisYear ? todayYear - age : todayYear - age - 1;
+          todayParts.month > month || (todayParts.month === month && todayParts.day >= day);
+        const birthYear = hasPassedThisYear ? todayParts.year - age : todayParts.year - age - 1;
 
         if (!isValidDate(birthYear, month, day)) {
           setError(resultEl, "入力情報の整合性が取れません。年齢を確認してください。");
@@ -649,6 +646,28 @@
           birthPlaceLookup.set(normalizePlace(alias), place.longitude);
         });
       });
+    }
+
+    function getCurrentDateParts() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day = now.getDate();
+      return {
+        year: year,
+        month: month,
+        day: day,
+        dateKey: formatDate(year, month, day)
+      };
+    }
+
+    function refreshCurrentDate(force) {
+      const current = getCurrentDateParts();
+      if (force || current.dateKey !== currentDateKey) {
+        currentDateKey = current.dateKey;
+        todayText.textContent = "今日の基準日: " + current.dateKey;
+      }
+      return current;
     }
 
     function calculateJapaneseTimeAdjustment() {
